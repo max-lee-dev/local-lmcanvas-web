@@ -10,9 +10,15 @@ export function Nav() {
     >
       <a
         href="#"
-        className="text-[11px] uppercase tracking-[0.18em] text-foreground hover:opacity-80"
+        className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-foreground hover:opacity-80"
       >
-        local-lmcanvas
+        <img
+          src="/app-icon.png"
+          alt=""
+          className="h-4 w-4 rounded-[4px]"
+          draggable={false}
+        />
+        LMCanvas
       </a>
       <div className="flex items-center gap-4">
         <a

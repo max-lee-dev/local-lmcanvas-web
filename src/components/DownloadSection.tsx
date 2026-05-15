@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { ArrowDown, Apple } from "lucide-react";
+import { ARM64_DMG_URL, INTEL_DMG_URL } from "../lib/download";
 
-const DMG_URL =
-  "https://github.com/max-lee-dev/local-lmcanvas/releases/latest/download/local-lmcanvas.dmg";
+const DMG_URL = ARM64_DMG_URL;
 
 export function DownloadSection() {
   return (
@@ -31,6 +31,7 @@ export function DownloadSection() {
       <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-[2fr_1fr]">
         <motion.a
           href={DMG_URL}
+          download="LMCanvas.dmg"
           whileHover={{ y: -1 }}
           className="group flex items-center justify-between bg-background px-6 py-8"
         >
@@ -41,10 +42,10 @@ export function DownloadSection() {
                 className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground"
                 style={{ fontFamily: "var(--font-geist-mono)" }}
               >
-                macOS · Apple Silicon · Intel
+                macOS · Apple Silicon
               </div>
               <div className="text-lg font-medium text-foreground">
-                local-lmcanvas.dmg
+                LMCanvas
               </div>
             </div>
           </div>
@@ -73,6 +74,20 @@ export function DownloadSection() {
             <li>~90mb disk</li>
           </ul>
         </div>
+      </div>
+
+      <div
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground"
+        style={{ fontFamily: "var(--font-geist-mono)" }}
+      >
+        <span className="uppercase tracking-[0.16em]">On an Intel Mac?</span>
+        <a
+          href={INTEL_DMG_URL}
+          download="LMCanvas.dmg"
+          className="underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+        >
+          Download LMCanvas for Intel
+        </a>
       </div>
 
       <p

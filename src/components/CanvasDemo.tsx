@@ -39,84 +39,88 @@ const FALLBACK_NODE_H_PCT = 18;
 
 const ROOT: DemoNode = {
   id: "root",
-  x: 38,
-  y: 3,
+  x: 55,
+  y: 0,
   provider: "claude",
-  userText: "/dashboard is taking 8s on prod — find why and propose fixes",
+  userText:
+    "users say avatars sometimes show the wrong person right after login — find it",
   assistant: [
     {
       kind: "text",
-      text: "Tracing the slow query first.",
+      text: "Two plausible suspects — the avatar fetch's cache key, or the axios auth interceptor. Locating both.",
     },
     {
       kind: "tool",
       block: {
         id: "r1",
         name: "Grep",
-        summary: 'pattern: "dashboard" in app/routes',
-        input: { pattern: "dashboard", path: "app/routes" },
+        summary: 'pattern: "useAvatar|/api/avatar"',
+        input: { pattern: "useAvatar|/api/avatar", path: "src" },
         result:
-          "app/routes/dashboard.ts:34: const events = await db.userEvents.findMany({ where: { userId } })\napp/routes/dashboard.ts:41:   for (const e of events) { const meta = await db.eventMeta.findUnique(...) }",
+          "src/hooks/useAvatar.ts:7: queryKey: ['avatar'],\nsrc/hooks/useAvatar.ts:8: queryFn: () => api.get('/api/avatar')\nsrc/lib/api.ts:14: api.interceptors.request.use((cfg) => { cfg.headers.Authorization = `Bearer ${getToken()}`; return cfg })",
       },
     },
     {
       kind: "tool",
       block: {
         id: "r2",
-        name: "Bash",
-        summary: "EXPLAIN ANALYZE on the dashboard query",
-        input: { command: "psql -c 'EXPLAIN ANALYZE SELECT ...'" },
+        name: "Read",
+        summary: "src/hooks/useAvatar.ts",
+        input: { file_path: "src/hooks/useAvatar.ts" },
         result:
-          "Seq Scan on user_events  (cost=0..184221 rows=812k)\n  Filter: (created_at > now() - '30 days')\n  Rows Removed by Filter: 2.4M\nExecution Time: 7984.221 ms",
+          "export function useAvatar() {\n  return useQuery({\n    queryKey: ['avatar'],\n    queryFn: () => api.get('/api/avatar').then(r => r.data),\n    staleTime: 5 * 60_000,\n  })\n}",
       },
     },
     {
       kind: "text",
-      text: "Two real fixes worth comparing in parallel: (1) composite index on (user_id, created_at) — leaves SQL untouched, ships today; (2) materialized view that aggregates per-day — bigger lift but reads stay cheap as the table grows.",
+      text: "Both are real candidates. Chasing them in parallel — whichever repros is the real bug.",
     },
   ],
 };
 
 const BRANCH_LEFT: DemoNode = {
   id: "branch-left",
-  x: 38,
-  y: 52,
+  x: 47,
+  y: 46,
   provider: "claude",
-  userText: "ship the index — fastest path to unblock prod",
+  userText: "go after the cache key first",
   assistant: [
     {
       kind: "text",
-      text: "Writing the migration and running it against a prod snapshot to confirm the plan flips.",
+      text: "Trying to repro: sign in as A, sign out, sign in as B without a hard reload.",
     },
     {
       kind: "tool",
       block: {
         id: "l1",
-        name: "Write",
-        summary: "migrations/0042_user_events_idx.sql",
-        input: {
-          file_path: "migrations/0042_user_events_idx.sql",
-          content:
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS\n  user_events_user_created_idx\n  ON user_events (user_id, created_at DESC);\n",
-        },
-        result: "File written: 3 lines",
+        name: "Bash",
+        summary: "playwright: login-swap repro",
+        input: { command: "bunx playwright test e2e/avatar-swap.spec.ts" },
+        result:
+          "[chromium] avatar-swap › shows correct avatar after re-login\n  expected: 'B.png'\n  received: 'A.png'\n  1 failed, 0 passed",
       },
+    },
+    {
+      kind: "text",
+      text: "Reproduced. react-query keeps `['avatar']` cached across the logout because the key never changes — B's session reads A's cached body until staleTime expires.",
     },
     {
       kind: "tool",
       block: {
         id: "l2",
-        name: "Bash",
-        summary: "psql < migrations/0042 && re-run EXPLAIN",
+        name: "Edit",
+        summary: "src/hooks/useAvatar.ts — scope key to userId",
         input: {
-          command: "psql -f migrations/0042_user_events_idx.sql && psql -c 'EXPLAIN ANALYZE ...'",
+          file_path: "src/hooks/useAvatar.ts",
+          old_string: "queryKey: ['avatar'],",
+          new_string: "queryKey: ['avatar', userId],",
         },
-        running: true,
+        result: "1 replacement",
       },
     },
     {
       kind: "text",
-      text: "Plan flipped to Index Scan. 7984ms → 241ms. Index is 64MB on disk, no app changes needed.",
+      text: "Re-ran the spec — passes. This is the bug.",
     },
   ],
 };
@@ -124,59 +128,39 @@ const BRANCH_LEFT: DemoNode = {
 const BRANCH: DemoNode = {
   id: "branch",
   x: 92,
-  y: 52,
+  y: 46,
   provider: "codex",
-  userText: "try the materialized view approach in parallel",
+  userText: "check the auth interceptor — could it be sending a stale token?",
   assistant: [
     {
       kind: "text",
-      text: "Aggregating per (user_id, day) so the dashboard becomes a 30-row read regardless of how many events the user has.",
+      text: "Reading the client and tracing where the token comes from on each request.",
     },
     {
       kind: "tool",
       block: {
         id: "t1",
-        name: "Write",
-        summary: "migrations/0043_dashboard_mv.sql",
-        input: {
-          file_path: "migrations/0043_dashboard_mv.sql",
-          content:
-            "CREATE MATERIALIZED VIEW dashboard_daily AS\nSELECT user_id, date_trunc('day', created_at) AS day,\n       count(*) AS events, sum(amount) AS total\nFROM user_events\nWHERE created_at > now() - interval '90 days'\nGROUP BY 1, 2;\n\nCREATE UNIQUE INDEX ON dashboard_daily (user_id, day);\n",
-        },
-        result: "File written: 8 lines",
+        name: "Read",
+        summary: "src/lib/api.ts + src/lib/auth.ts",
+        input: { file_path: "src/lib/api.ts" },
+        result:
+          "api.interceptors.request.use((cfg) => {\n  cfg.headers.Authorization = `Bearer ${getToken()}`\n  return cfg\n})\n\n// auth.ts\nexport const getToken = () => sessionStore.getState().accessToken",
       },
     },
     {
       kind: "tool",
       block: {
         id: "t2",
-        name: "Bash",
-        summary: "REFRESH MATERIALIZED VIEW + EXPLAIN dashboard read",
-        input: {
-          command:
-            "psql -c 'REFRESH MATERIALIZED VIEW CONCURRENTLY dashboard_daily' && psql -c 'EXPLAIN ANALYZE SELECT * FROM dashboard_daily WHERE user_id = $1'",
-        },
+        name: "Grep",
+        summary: 'pattern: "sessionStore.setState" — when does the token rotate?',
+        input: { pattern: "sessionStore.setState", path: "src" },
         result:
-          "REFRESH MATERIALIZED VIEW\nIndex Scan using dashboard_daily_user_id_day_idx  (cost=0.42..8.44 rows=30)\nExecution Time: 78.4 ms",
-      },
-    },
-    {
-      kind: "tool",
-      block: {
-        id: "t3",
-        name: "Write",
-        summary: "app/routes/dashboard.ts — read from view",
-        input: {
-          file_path: "app/routes/dashboard.ts",
-          content:
-            "const rows = await db.dashboardDaily.findMany({\n  where: { userId, day: { gte: thirtyDaysAgo } },\n  orderBy: { day: 'desc' },\n});\n",
-        },
-        running: true,
+          "src/auth/login.ts:22:  sessionStore.setState({ accessToken: tok })\nsrc/auth/logout.ts:8:  sessionStore.setState({ accessToken: null })",
       },
     },
     {
       kind: "text",
-      text: "78ms p95 — 100x. Trade-off: refresh cron is 5min so the dashboard is stale by up to 5min. Worth checking with product before we pick this over the index.",
+      text: "Interceptor reads `getToken()` fresh on every request from a zustand store that's synchronously updated on login/logout. No closure capture, no shared singleton. Not the bug here — whatever the cache branch finds is the real cause.",
     },
   ],
 };
@@ -805,8 +789,8 @@ export function CanvasDemo() {
         return {
           ...prev,
           "branch-left": {
-            x: rootPos.x,
-            y: rootPos.y + rootH + 40,
+            x: rootPos.x - 14,
+            y: rootPos.y + rootH + 32,
           },
         };
       });

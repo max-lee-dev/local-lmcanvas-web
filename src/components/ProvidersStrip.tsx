@@ -40,7 +40,7 @@ export function ProvidersStrip() {
       </div>
       <p className="text-[12px] leading-[1.6] text-muted-foreground">
         Sign in with the CLI you already use. No API keys to manage. No new
-        bill. lmcanvas spawns your CLI in the background and renders the
+        bill. LMCanvas spawns your CLI in the background and renders the
         canvas around it.
       </p>
     </section>

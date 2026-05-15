@@ -1,33 +1,38 @@
 import { motion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
 import { GithubIcon } from "./GithubIcon";
-
-const REPO_URL = "https://github.com/max-lee-dev/local-lmcanvas";
+import { DEFAULT_DMG_URL, REPO_URL } from "../lib/download";
 
 export function Hero() {
   return (
-    <section className="flex flex-col pt-12 sm:pt-20 lg:pt-28">
+    <section className="flex flex-col pt-6 sm:pt-10 lg:pt-14">
       <motion.span
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="self-start text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+        className="inline-flex items-center gap-2 self-start text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
         style={{ fontFamily: "var(--font-geist-mono)" }}
       >
-        local-lmcanvas · v0.1
+        <img
+          src="/app-icon.png"
+          alt=""
+          className="h-4 w-4 rounded-[4px]"
+          draggable={false}
+        />
+        LMCanvas · v0.1
       </motion.span>
 
       <motion.h1
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut", delay: 0.05 }}
-        className="mt-6 text-4xl leading-[1.05] text-foreground sm:text-5xl xl:text-6xl"
+        className="mt-6 w-[min(560px,95vw)] text-5xl leading-[1.02] text-foreground sm:text-6xl xl:text-7xl"
         style={{
           fontFamily: "var(--font-geist-pixel-square)",
-          fontWeight: 700,
+          fontWeight: 900,
         }}
       >
-        Linear chat is dead.
+        Linear chat<br />is dead.
       </motion.h1>
 
       <motion.p
@@ -38,7 +43,7 @@ export function Hero() {
         style={{ fontFamily: "var(--font-geist-mono)" }}
       >
         Every AI chat works the same way: one thread, one path, one direction.
-        local-lmcanvas gives you a canvas — branch a conversation the moment
+        LMCanvas gives you a canvas — branch a conversation the moment
         you want to try a different angle, keep every approach in view.
       </motion.p>
 
@@ -50,7 +55,8 @@ export function Hero() {
       >
         <div className="flex flex-wrap items-center gap-3">
           <a
-            href="#download"
+            href={DEFAULT_DMG_URL}
+            download
             className="inline-flex items-center gap-2 border border-foreground bg-foreground px-5 py-2.5 text-[12px] uppercase tracking-[0.16em] text-background hover:opacity-90"
             style={{ fontFamily: "var(--font-geist-mono)" }}
           >
