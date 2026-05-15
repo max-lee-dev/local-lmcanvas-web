@@ -806,7 +806,7 @@ export function CanvasDemo() {
           ...prev,
           "branch-left": {
             x: rootPos.x,
-            y: rootPos.y + rootH + 3,
+            y: rootPos.y + rootH + 24,
           },
         };
       });
