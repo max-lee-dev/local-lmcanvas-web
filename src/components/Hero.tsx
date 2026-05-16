@@ -74,12 +74,6 @@ export function Hero() {
             Source
           </a>
         </div>
-        <span
-          className="text-[11px] text-muted-foreground/80"
-          style={{ fontFamily: "var(--font-geist-mono)" }}
-        >
-          macOS only · about 90mb · free
-        </span>
       </motion.div>
     </section>
   );

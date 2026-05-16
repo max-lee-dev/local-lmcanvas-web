@@ -71,7 +71,6 @@ export function DownloadSection() {
           >
             <li>macOS 11 or later</li>
             <li>Claude Code, Codex, or cursor-agent CLI</li>
-            <li>~90mb disk</li>
           </ul>
         </div>
       </div>
