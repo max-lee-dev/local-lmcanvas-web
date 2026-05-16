@@ -23,13 +23,13 @@ export function Nav() {
       <div className="flex items-center gap-4">
         <a
           href="#download"
-          className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+          className="hidden sm:inline text-[11px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
         >
           download
         </a>
         <a
           href="#how"
-          className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+          className="hidden sm:inline text-[11px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
         >
           how it works
         </a>
