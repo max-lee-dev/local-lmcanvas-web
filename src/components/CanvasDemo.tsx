@@ -725,22 +725,46 @@ function clampPct(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
 }
 
+// Snapshot at mount — we don't rebuild the graph if the viewport crosses the
+// breakpoint mid-session, but we do pick the right initial layout per device.
+function useIsMobileSnapshot() {
+  const [isMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 767px)").matches;
+  });
+  return isMobile;
+}
+
 export function CanvasDemo() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [nodes, setNodes] = useState<DemoNode[]>([ROOT, BRANCH_LEFT, BRANCH]);
-  const [edges, setEdges] = useState<DemoEdge[]>([
-    { id: "root->branch-left", from: "root", to: "branch-left" },
-    { id: "root->branch", from: "root", to: "branch" },
-  ]);
-  const [positions, setPositions] = useState<Record<string, NodePos>>({
-    root: { x: ROOT.x, y: ROOT.y },
-    "branch-left": { x: BRANCH_LEFT.x, y: BRANCH_LEFT.y },
-    branch: { x: BRANCH.x, y: BRANCH.y },
+  const isMobile = useIsMobileSnapshot();
+  const [nodes, setNodes] = useState<DemoNode[]>(() =>
+    isMobile ? [ROOT, BRANCH_LEFT] : [ROOT, BRANCH_LEFT, BRANCH],
+  );
+  const [edges, setEdges] = useState<DemoEdge[]>(() =>
+    isMobile
+      ? [{ id: "root->branch-left", from: "root", to: "branch-left" }]
+      : [
+          { id: "root->branch-left", from: "root", to: "branch-left" },
+          { id: "root->branch", from: "root", to: "branch" },
+        ],
+  );
+  const [positions, setPositions] = useState<Record<string, NodePos>>(() => {
+    const rootPos = { x: isMobile ? 50 : ROOT.x, y: ROOT.y };
+    const base: Record<string, NodePos> = {
+      root: rootPos,
+      "branch-left": { x: BRANCH_LEFT.x, y: BRANCH_LEFT.y },
+    };
+    if (!isMobile) base.branch = { x: BRANCH.x, y: BRANCH.y };
+    return base;
   });
-  const [providers, setProviders] = useState<Record<string, Provider>>({
-    root: ROOT.provider,
-    "branch-left": BRANCH_LEFT.provider,
-    branch: BRANCH.provider,
+  const [providers, setProviders] = useState<Record<string, Provider>>(() => {
+    const base: Record<string, Provider> = {
+      root: ROOT.provider,
+      "branch-left": BRANCH_LEFT.provider,
+    };
+    if (!isMobile) base.branch = BRANCH.provider;
+    return base;
   });
   const [heights, setHeights] = useState<Record<string, number>>({});
   const heightsRef = useRef<Record<string, number>>({});
@@ -748,10 +772,13 @@ export function CanvasDemo() {
     heightsRef.current = heights;
   }, [heights]);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
-  const [streamStarts, setStreamStarts] = useState<Record<string, boolean>>({
-    root: false,
-    "branch-left": false,
-    branch: false,
+  const [streamStarts, setStreamStarts] = useState<Record<string, boolean>>(() => {
+    const base: Record<string, boolean> = {
+      root: false,
+      "branch-left": false,
+    };
+    if (!isMobile) base.branch = false;
+    return base;
   });
   const [visibleIds, setVisibleIds] = useState<Set<string>>(
     () => new Set(["root"]),
@@ -789,7 +816,7 @@ export function CanvasDemo() {
         return {
           ...prev,
           "branch-left": {
-            x: rootPos.x - 14,
+            x: isMobile ? rootPos.x : rootPos.x - 14,
             y: rootPos.y + rootH + 32,
           },
         };
@@ -800,6 +827,12 @@ export function CanvasDemo() {
       () => setStreamStarts((prev) => ({ ...prev, "branch-left": true })),
       1200,
     );
+    if (isMobile) {
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
     const t3 = setTimeout(
       () => setVisibleIds((prev) => new Set(prev).add("branch")),
       1150,
@@ -814,7 +847,7 @@ export function CanvasDemo() {
       clearTimeout(t3);
       clearTimeout(t4);
     };
-  }, []);
+  }, [isMobile]);
 
   const onPositionChange = useCallback((id: string, next: NodePos) => {
     setPositions((prev) => ({ ...prev, [id]: next }));
