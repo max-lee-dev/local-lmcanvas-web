@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowDown } from "lucide-react";
+import { AppleIcon } from "./AppleIcon";
 import { GithubIcon } from "./GithubIcon";
 import { DEFAULT_DMG_URL, REPO_URL } from "../lib/download";
 
@@ -42,9 +42,9 @@ export function Hero() {
         className="mt-8 w-[min(520px,90vw)] text-[14px] leading-[1.7] text-muted-foreground"
         style={{ fontFamily: "var(--font-geist-mono)" }}
       >
-        Every AI chat works the same way: one thread, one path, one direction.
-        LMCanvas gives you a canvas — branch a conversation the moment
-        you want to try a different angle, keep every approach in view.
+        Instantly connect your CLI agent in the background and render a
+        node-based canvas around it. Branch a conversation the moment you want
+        to try a different angle while keeping every approach in view :)
       </motion.p>
 
       <motion.div
@@ -60,8 +60,8 @@ export function Hero() {
             className="inline-flex items-center gap-2 border border-foreground bg-foreground px-5 py-2.5 text-[12px] uppercase tracking-[0.16em] text-background hover:opacity-90"
             style={{ fontFamily: "var(--font-geist-mono)" }}
           >
+            <AppleIcon className="h-3.5 w-3.5" />
             Download for macOS
-            <ArrowDown className="h-3.5 w-3.5" />
           </a>
           <a
             href={REPO_URL}
@@ -74,6 +74,12 @@ export function Hero() {
             Source
           </a>
         </div>
+        <span
+          className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+          style={{ fontFamily: "var(--font-geist-mono)" }}
+        >
+          &lt; 1 min to set up
+        </span>
       </motion.div>
     </section>
   );
