@@ -1,4 +1,4 @@
-export const VERSION = "0.2.6";
+export const VERSION = "0.2.7";
 
 export const REPO_URL = "https://github.com/max-lee-dev/local-lmcanvas";
 
